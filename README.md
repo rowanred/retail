@@ -10,7 +10,7 @@ family.
 usage
 =====
 
-Usage: retail [-d] [-h] [-s <state dir>] -f <logfile pattern>
+Usage: retail [-d] [-h] [-s state_dir] -f logfile_pattern
 
 retail is a log file tailer in the spirit of logtail that keeps state in
 an NDBM file and can follow all log files matching a regular expression
