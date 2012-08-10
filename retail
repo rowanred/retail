@@ -3,7 +3,7 @@
 # potentially rotated log file.  Keeps state between runs - state includes
 # the last read byte offset of the file, and the next run seeks to that offset.
 #
-# 2012-07-31 - Rowan Littell <rowan@pandora.com>
+# 2012-07-31 - Rowan Littell
 
 use strict;
 use Getopt::Std;
