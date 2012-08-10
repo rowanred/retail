@@ -15,6 +15,17 @@ use Digest::SHA1 qw /sha1_hex sha1_base64/;
 my $STATEPATH = "/tmp";
 my $DEBUG = 0;
 
+sub usage() {
+  print "Usage: retail [-d] [-h] [-s <state dir>] -f <logfile pattern>\n\n";
+  print "retail is a log file tailer in the spirit of logtail that keeps state in\n";
+  print "an NDBM file and can follow all log files matching a regular expression\n";
+  print "pattern.  For example, to follow logs created with a time stamp suffix\n";
+  print "of the form access.YYYY-MM-DD (note the escapes for shell):\n\n";
+  print "    retail -f /var/log/apache/access.\\\\d{4}-\\\\d{2}-\\\\d{2}\n\n";
+  print "retail compares the file name of the log file (but NOT any parts of the path)\n";
+  print "to the regular expression when selecting files to follow.\n";
+}
+
 # return a list of files to process, sorted by ctime
 # ARGS:
 #  $filepattern: full path name, of which the last component may be a
@@ -52,6 +63,11 @@ MAIN:
   # -h: print usage
   # -s <state file path>: directory in which to save state files
   getopts('df:hs:', \%opts);
+
+  if ($opts{'h'}) {
+    usage();
+    exit;
+  }
 
   $DEBUG = 1 if ($opts{'d'});
   $STATEPATH = $opts{'s'} if ($opts{'s'});
