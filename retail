@@ -56,7 +56,7 @@ sub getfiles ($) {
 
 MAIN:
 {
-  my (%opts, $filepattern, %state, %touched);
+  my (%opts, $filepattern, %state, %touched, %handles);
 
   # -d: turn on debugging output
   # -f <filepattern>: process these file patterns
@@ -101,6 +101,17 @@ MAIN:
   # get list of files to process
   my @files_to_process = getfiles ($filepattern);
 
+  # open filehandles for all files before processing in case some
+  # files go away while we're processing others
+  foreach my $file (@files_to_process) {
+    my $fh;
+    if (sysopen ($fh, $file, O_RDONLY)) {
+      $handles{$file} = $fh;
+    } else {
+      print STDERR "DEBUG: sysopen failed on $file: $!\n" if ($DEBUG);
+    }
+  }
+
   foreach my $file (@files_to_process) {
 
     # start at the beginning of the file or, if defined, the offset
@@ -112,11 +123,18 @@ MAIN:
 
     print STDERR "DEBUG: open $file: $offset\n" if ($DEBUG);
 
-    # open, seek, read/print, and close file
-    sysopen (F, $file, O_RDONLY);
-    sysseek (F, $offset, 0);
+    # if file has a previously opened file handle, process it
+    # otherwise continue to next file
+    if (!defined ($handles{$file})) {
+      print STDERR "DEBUG: no file handle for $file\n" if ($DEBUG);
+      next;
+    }
+
+    # seek, read/print, and close file
+    my $fh = $handles{$file};
+    sysseek ($fh, $offset, 0);
     my $line;
-    while (my $bytes = sysread (F, $line, 1024)) {
+    while (my $bytes = sysread ($fh, $line, 1024)) {
       if ($DEBUG) {
         if ($line !~ /\n$/) {
           print STDERR '.';
@@ -127,7 +145,7 @@ MAIN:
       $offset += $bytes;
       print "$line";
     }
-    close (F);
+    close ($fh);
 
     # save offset for next run
     $state{"OFFSET:$file"} = $offset;
