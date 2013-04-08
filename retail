@@ -38,7 +38,7 @@ sub getfiles ($) {
   my $pattern = basename ($filepattern);
   my (@files, %stat);
 
-  opendir (D, $dirname);
+  opendir (D, $dirname) || return (@files);
   my @dirfiles = readdir (D);
   closedir (D);
   print STDERR "DEBUG: matching pattern: $pattern\n" if ($DEBUG);
