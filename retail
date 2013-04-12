@@ -114,11 +114,15 @@ MAIN:
 
   foreach my $file (@files_to_process) {
 
-    # start at the beginning of the file or, if defined, the offset
-    # saved in the state file
+    # start at the beginning of the file; if offset defined in state file,
+    # use that unless the offset is greater than the current file size,
+    # indicating that the file has been truncated and rewritten.
     my $offset = 0;
     if (defined ($state{"OFFSET:$file"})) {
-      $offset = $state{"OFFSET:$file"};
+      my $fsize = (stat ($file))[7];
+      if ($fsize >= $state{"OFFSET:$file"}) {
+        $offset = $state{"OFFSET:$file"};
+      }
     }
 
     print STDERR "DEBUG: open $file: $offset\n" if ($DEBUG);
