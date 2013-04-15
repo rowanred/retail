@@ -14,9 +14,11 @@ use Digest::SHA1 qw /sha1_hex sha1_base64/;
 
 my $STATEPATH = "/tmp";
 my $DEBUG = 0;
+my $REWIND_TIME = 3600;
 
 sub usage() {
-  print "Usage: retail [-d] [-h] [-s <state dir>] -f <logfile pattern>\n\n";
+  print "Usage: retail [-d] [-h] [-r bytes [-t time]] [-s <state dir>]\n";
+  print "       -f <logfile pattern>\n\n";
   print "retail is a log file tailer in the spirit of logtail that keeps state in\n";
   print "an NDBM file and can follow all log files matching a regular expression\n";
   print "pattern.  For example, to follow logs created with a time stamp suffix\n";
@@ -61,8 +63,10 @@ MAIN:
   # -d: turn on debugging output
   # -f <filepattern>: process these file patterns
   # -h: print usage
+  # -r <bytes>: rewind N bytes from the end of the file (similar to tail -N)
   # -s <state file path>: directory in which to save state files
-  getopts('df:hs:', \%opts);
+  # -t <time>: time during which a rewound file may be considered active
+  getopts('df:hr:s:t:', \%opts);
 
   if ($opts{'h'}) {
     usage();
@@ -71,6 +75,7 @@ MAIN:
 
   $DEBUG = 1 if ($opts{'d'});
   $STATEPATH = $opts{'s'} if ($opts{'s'});
+  $REWIND_TIME = $opts{'t'} if ($opts{'t'});
 
   if ($opts{'f'}) {
     $filepattern = $opts{'f'};
@@ -118,11 +123,17 @@ MAIN:
     # use that unless the offset is greater than the current file size,
     # indicating that the file has been truncated and rewritten.
     my $offset = 0;
+    my @stat = stat ($file);
     if (defined ($state{"OFFSET:$file"})) {
-      my $fsize = (stat ($file))[7];
+      my $fsize = $stat[7];
       if ($fsize >= $state{"OFFSET:$file"}) {
         $offset = $state{"OFFSET:$file"};
       }
+    }
+    # if asked to get the last N bytes, do so if that's after the beginning
+    # of the file and this file has been modified in the last hour
+    if ($opts{'r'} && $offset >= $opts{'r'} && $stat[9] >= time() - $REWIND_TIME) {
+      $offset = $offset - $opts{'r'};
     }
 
     print STDERR "DEBUG: open $file: $offset\n" if ($DEBUG);
